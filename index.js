@@ -237,6 +237,12 @@ async function run() {
     });
 
     //-----------------post users  for paticular email api------------------------
+    app.get('/users' , async (req , res) => {
+      const quary = {}
+      const result = await usersCollection.find(quary).toArray()
+      res.send(result)
+    })
+    //-----------------post users  for paticular email api------------------------
     app.post("/users", async (req, res) => {
       const user = req.body;
       console.log(user);
