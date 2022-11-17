@@ -11,8 +11,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-//DB_USER = drPotal
-//DB_PASSWORD = HxPZ64g8Nw0Xi87j
+// DB_USER = drPotal
+// DB_PASSWORD = HxPZ64g8Nw0Xi87j
+// ACCESS_TOKEN = 6ad8939f3e9b1f5d806482d70462ce4e8031b59bd793ef0fcef0b1f8c11154303580bf43437b95de9194a77b85b802be11b6cfa1b993926ea43199ed5f06fdb7
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.0t7ovhi.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, {
