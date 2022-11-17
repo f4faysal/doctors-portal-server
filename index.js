@@ -22,6 +22,16 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
+    /***
+     * API Naming Convention
+     * app.get('/bookings')
+     * app.get('/bookings/:id')
+     * app.post('/bookings')
+     * app.patch('/bookings/:id')
+     * app.delete('/bookings/:id')
+     */
+
+    //------------------------------------------------------------
     const appointmentOptionCollection = client
       .db("doctorsPortal")
       .collection("appointmentOptions");
@@ -30,7 +40,11 @@ async function run() {
       .db("doctorsPortal")
       .collection("bookings");
 
-    //get appointment Options api
+    const usersCollection = client.db("doctorsPortal").collection("users");
+    //------------------------------------------------------------
+
+    //-------------------get appointment Options api-------------------------------
+
     app.get("/appointmentOptions", async (req, res) => {
       const date = req.query.date;
       const query = {};
@@ -49,6 +63,7 @@ async function run() {
       // })
 
       // get the bookings of the provided date
+
       const bookingQuery = { appointmentDate: date };
       const alreadyBooked = await bookingsCollection
         .find(bookingQuery)
@@ -63,20 +78,121 @@ async function run() {
         const remainingSlots = option.slots.filter(
           (slot) => !bookedSlots.includes(slot)
         );
-
         // console.log(remainingSlots.length , option.name , date)
         option.slots = remainingSlots;
       });
       res.send(options);
     });
-    //post bookings api
+    //----------/v2/appointmentOptions---------------
+    app.get("/v2/appointmentOptions", async (req, res) => {
+      const date = req.query.date;
+      const options = await appointmentOptionCollection
+        .aggregate([
+          {
+            $lookup: {
+              from: "bookings",
+              localField: "name",
+              foreignField: "treatment",
+              pipeline: [
+                {
+                  $match: {
+                    $expr: {
+                      $eq: ["$appointmentDate", date],
+                    },
+                  },
+                },
+              ],
+              as: "booked",
+            },
+          },
+          {
+            $project: {
+              name: 1,
+              slots: 1,
+              booked: {
+                $map: {
+                  input: "$booked",
+                  as: "book",
+                  in: "$$book.slot",
+                },
+              },
+            },
+          },
+          {
+            $project: {
+              name: 1,
+              slots: {
+                $setDifference: ["$slots", "$booked"],
+              },
+            },
+          },
+        ])
+        .toArray();
+      res.send(options);
+    });
+
+    //-----------------post bookings api------------------------
+
+    // app.post("/bookings", async (req, res) => {
+    //   const booking = req.body;
+    //   console.log(booking);
+
+    //   const query = {
+    //     appointmentDate: booking.appointmentDate,
+    //     email: booking.email,
+    //     treatment: booking.treatment,
+    //   };
+
+    //   const alreadyBooked = await bookingsCollection.find(query).toArray();
+
+    //   if (alreadyBooked.length) {
+    //     const message = `You already have a booking on ${booking.appointmentDate}`;
+    //     return res.send({ acknowledged: false, message });
+    //   }
+
+    //   const result = await bookingsCollection.insertOne(booking);
+    //   res.send(result);
+    // });
 
     app.post("/bookings", async (req, res) => {
       const booking = req.body;
-      console.log(booking);
+
+      const query = {
+        appointmentDate: booking.appointmentDate,
+        email: booking.email,
+        treatment: booking.treatment,
+      };
+
+      console.log(query);
+      const alreadyBooked = await bookingsCollection.find(query).toArray();
+
+      if (alreadyBooked.length) {
+        const message = `You already have a booking on ${booking.appointmentDate}`;
+        return res.send({ acknowledged: false, message });
+      }
       const result = await bookingsCollection.insertOne(booking);
       res.send(result);
     });
+
+    //-----------------get bookings  for paticular email api------------------------
+
+    app.get("/bookings", async (req, res) => {
+      const email = req.query.email;
+      console.log(email);
+      const query = { email: email };
+      const bookings = await bookingsCollection.find(query).toArray();
+      res.send(bookings);
+    });
+
+    //-----------------get bookings  for paticular email api------------------------
+
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      console.log(user);
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
+    
   } catch {}
 }
 run().catch(console.log);
