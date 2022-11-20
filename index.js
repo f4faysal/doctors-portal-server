@@ -150,6 +150,13 @@ async function run() {
       res.send(options);
     });
 
+    //----------------- get project appointmentSpecialty api------------------------
+    app.get('/appointmentSpecialty', async (req, res) => {
+      const query = {}
+      const result = await appointmentOptionCollection.find(query).project({ name: 1 }).toArray();
+      res.send(result);
+    })
+
     //-----------------post bookings api------------------------
 
     // app.post("/bookings", async (req, res) => {
@@ -175,7 +182,6 @@ async function run() {
 
     app.post("/bookings", async (req, res) => {
       const booking = req.body;
-
       const query = {
         appointmentDate: booking.appointmentDate,
         email: booking.email,
@@ -205,6 +211,8 @@ async function run() {
       const query = { email: email };
       const bookings = await bookingsCollection.find(query).toArray();
       res.send(bookings);
+
+
     });
 
     //-----------------jwt email varifei------------------------
@@ -242,6 +250,19 @@ async function run() {
       const result = await usersCollection.find(quary).toArray();
       res.send(result);
     });
+
+
+    //-----------------get users  email for paticular email api------------------------
+
+
+    app.get('/users/admin/:email', async (req, res) => {
+      const email = req.params.email;
+      const query = { email }
+      const user = await usersCollection.findOne(query);
+      res.send({ isAdmin: user?.role === 'admin' });
+    })
+
+
     //-----------------post users  for paticular email api------------------------
     app.post("/users", async (req, res) => {
       const user = req.body;
@@ -263,31 +284,33 @@ async function run() {
     //     },
     //   };
 
-    
+
     //   const result = await usersCollection.updateOne(filter, updatedDoc, options);
     //         res.send(result);
     // });
 
-    app.put('/users/admin/:id', verifyJWT ,  async (req, res) => {
+    app.put('/users/admin/:id', verifyJWT, async (req, res) => {
       const decodedEmail = req.decoded.email;
       const query = { email: decodedEmail };
       const user = await usersCollection.findOne(query);
 
       if (user?.role !== 'admin') {
-          return res.status(403).send({ message: 'forbidden access' })
+        return res.status(403).send({ message: 'forbidden access' })
       }
+
+
 
       const id = req.params.id;
       const filter = { _id: ObjectId(id) }
       const options = { upsert: true };
       const updatedDoc = {
-          $set: {
-              role: 'admin'
-          }
+        $set: {
+          role: 'admin'
+        }
       }
       const result = await usersCollection.updateOne(filter, updatedDoc, options);
       res.send(result);
-  })
+    })
 
   } finally {
   }
