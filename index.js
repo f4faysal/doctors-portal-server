@@ -60,7 +60,21 @@ async function run() {
       .collection("bookings");
 
     const usersCollection = client.db("doctorsPortal").collection("users");
+    const doctorsCollection = client.db('doctorsPortal').collection('doctors');
     //------------------------------------------------------------
+
+
+    // NOTE: make sure you use verifyAdmin after verifyJWT
+    const verifyAdmin = async (req, res, next) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await usersCollection.findOne(query);
+
+      if (user?.role !== 'admin') {
+        return res.status(403).send({ message: 'forbidden access' })
+      }
+      next();
+    }
 
     //-------------------get appointment Options api-------------------------------
 
@@ -311,6 +325,34 @@ async function run() {
       const result = await usersCollection.updateOne(filter, updatedDoc, options);
       res.send(result);
     })
+
+
+    //----------------- post doctors a  API------------------------
+
+    app.post('/doctors', verifyJWT, verifyAdmin, async (req, res) => {
+      const doctor = req.body;
+      const result = await doctorsCollection.insertOne(doctor);
+      res.send(result);
+    });
+
+    //----------------- get  doctors a  API------------------------
+
+
+    app.get('/doctors', verifyJWT, verifyAdmin, async (req, res) => {
+      const query = {};
+      const doctors = await doctorsCollection.find(query).toArray();
+      res.send(doctors);
+    })
+
+    //----------------- delete doctors a  API------------------------
+
+    app.delete('/doctors/:id', verifyJWT, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const result = await doctorsCollection.deleteOne(filter);
+      res.send(result);
+    })
+
 
   } finally {
   }
